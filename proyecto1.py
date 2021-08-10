@@ -52,8 +52,13 @@ class particula:
         self.Fdrz = comun * self.w
 
     def pesoSumergido(self, theta, Taus, R):
-        #por hacer
-        pass
+        #Comun
+        comun = ( 1 / 1 + R + CM ) * ( 1 / Taus )
+        #Fswx
+        self.Fswx = math.sin(theta) * comun
+        #Fswz
+        self.Fswz = math.cos(theta) * comun
+
     def masaVirtual(self):
         #por hacer
         pass
@@ -88,6 +93,9 @@ if __name__ == "__main__":
     print(particulas)
     #INICIO DE CALCULOS
     try:
+        #aqui solo comprobando si se calculan las cosas, borrar para empezar simulacion XD
         print(particulas[0].cd)
+        particulas[0].pesoSumergido(prm.theta, prm.Taus, prm.R)
+        print(particulas[0].Fswz)
     except Exception as e:
         print(f"{e}")
