@@ -59,12 +59,14 @@ class particula:
         #Fswz
         self.Fswz = math.cos(theta) * comun
 
-    def masaVirtual(self):
-        #por hacer
-        pass
+    def masaVirtual(self, R):
+        #Fvmx
+        self.Fvmx = ( CM / 1 + R + CM ) * self.w * ( 2.5 / self.z)
+
     def lift(self):
         #por hacer
         pass
+    #falta agregar funciones para definir nuevas velocidades, posiciones y la condicion de al chocar cambia el angulo y velocidad al azar
 
 class parametros:
     def __init__(self, T = None, dt = None, theta = None, R = None, Taus = None, CL = None) -> None:
@@ -88,14 +90,17 @@ if __name__ == "__main__":
                     x, y, z, u, v, w = map(float, line.split())
                     ptc = particula(x, y, z, u, v, w)
                     ptc.calculate_ufz_urt_urm_cd(prm.Taus)
+                    ptc.pesoSumergido(prm.theta, prm.Taus, prm.R)
+                    ptc.masaVirtual(prm.R)
                     particulas.append(ptc)
 #////////////////FIN Lectura de txt/////////////////////////
     print(particulas)
     #INICIO DE CALCULOS
     try:
+        #para simulacion probablemente crear todas las variables de forma temporal y acutalizar al final por particula
         #aqui solo comprobando si se calculan las cosas, borrar para empezar simulacion XD
         print(particulas[0].cd)
-        particulas[0].pesoSumergido(prm.theta, prm.Taus, prm.R)
         print(particulas[0].Fswz)
+        print(particulas[0].Fvmx)
     except Exception as e:
         print(f"{e}")
