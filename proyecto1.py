@@ -25,18 +25,28 @@ class particula:
         self.w = w
         self.urt = None
         self.ufz = None
+        self.uftop = None
+        self.ufbot = None
         self.urm = None
         self.cd = None
+        self.ur2t = None
+        self.ur2b = None
 
-    def calculate_ufz_urt_urm_cd(self, Taus):
+    def calculate_ufz_urt_urm_cd_uftop_ufbot(self, Taus):
         #ufz
         condition = 73 * math.sqrt(Taus)
         if condition < 5:
             self.ufz = 2.5 * math.log(condition * self.z) + 5.5
+            self.uftop = 2.5 * math.log(condition * (self.z + CM)) + 5.5
+            self.ufbot = 2.5 * math.log(condition * (self.z - CM)) + 5.5
         elif condition >= 5 and condition < 70:
             self.ufz = (2.5 * math.log(condition * self.z) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
+            self.uftop = (2.5 * math.log(condition * (self.z + CM)) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
+            self.ufbot = (2.5 * math.log(condition * (self.z - CM)) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
         else:
             self.ufz = 2.5 * math.log(30 * self.z)
+            self.uftop = 2.5 * math.log(30 * (self.z + CM))
+            self.ufbot = 2.5 * math.log(30 * (self.z - CM))
         #urt
         self.urt = self.u - self.ufz
         #urm
@@ -63,9 +73,13 @@ class particula:
         #Fvmx
         self.Fvmx = ( CM / 1 + R + CM ) * self.w * ( 2.5 / self.z)
 
-    def lift(self):
-        #por hacer
-        pass
+    def lift(self, R, CL):
+        self.Flfz = 0.75 * (1 / 1 + R + CM) * CL * (self.ur2t + self)
+
+    def calculate_ur2t_ur2b(self):
+        self.ur2t = math.pow(self.urt - self.uftop, 2) + v
+        self.ur2t = math.pow(self.urt - self.ufbot, 2) + v
+
     #falta agregar funciones para definir nuevas velocidades, posiciones y la condicion de al chocar cambia el angulo y velocidad al azar
 
 class parametros:
@@ -89,9 +103,10 @@ if __name__ == "__main__":
                 for line in f:
                     x, y, z, u, v, w = map(float, line.split())
                     ptc = particula(x, y, z, u, v, w)
-                    ptc.calculate_ufz_urt_urm_cd(prm.Taus)
+                    ptc.calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
                     ptc.pesoSumergido(prm.theta, prm.Taus, prm.R)
                     ptc.masaVirtual(prm.R)
+                    ptc.lift(prm.R, prm.CL)
                     particulas.append(ptc)
 #////////////////FIN Lectura de txt/////////////////////////
     print(particulas)
