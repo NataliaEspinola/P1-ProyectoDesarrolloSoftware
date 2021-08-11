@@ -74,11 +74,14 @@ class particula:
         self.Fvmx = ( CM / 1 + R + CM ) * self.w * ( 2.5 / self.z)
 
     def lift(self, R, CL):
-        self.Flfz = 0.75 * (1 / 1 + R + CM) * CL * (self.ur2t + self)
+        #Flfz
+        self.Flfz = 0.75 * (1 / 1 + R + CM) * CL * (self.ur2t + self.ur2b)
 
     def calculate_ur2t_ur2b(self):
-        self.ur2t = math.pow(self.urt - self.uftop, 2) + v
-        self.ur2t = math.pow(self.urt - self.ufbot, 2) + v
+        #ur2t
+        self.ur2t = math.pow(self.urt - self.uftop, 2) + math.pow(v, 2) + math.pow(w, 2)
+        #ur2b
+        self.ur2b = math.pow(self.urt - self.ufbot, 2) + math.pow(v, 2) + math.pow(w, 2)
 
     #falta agregar funciones para definir nuevas velocidades, posiciones y la condicion de al chocar cambia el angulo y velocidad al azar
 
@@ -106,6 +109,7 @@ if __name__ == "__main__":
                     ptc.calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
                     ptc.pesoSumergido(prm.theta, prm.Taus, prm.R)
                     ptc.masaVirtual(prm.R)
+                    ptc.calculate_ur2t_ur2b()
                     ptc.lift(prm.R, prm.CL)
                     particulas.append(ptc)
 #////////////////FIN Lectura de txt/////////////////////////
@@ -117,5 +121,6 @@ if __name__ == "__main__":
         print(particulas[0].cd)
         print(particulas[0].Fswz)
         print(particulas[0].Fvmx)
+        print(particulas[0].Flfz)
     except Exception as e:
         print(f"{e}")
