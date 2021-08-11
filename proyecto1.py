@@ -1,11 +1,14 @@
 import sys
 import io
 import math
+import random
 
 DIAMETRO = 1
 RADIO = DIAMETRO / 2
 INICIO = 0
 CM = 0.5
+radiandes_de_75_grados = 5*math.pi/12
+radianes_de_10_grados = 0.174533
 
 '''
 Fdrx, Fdry, Fdrz    FUERZAS DE ARRASTRE
@@ -85,6 +88,22 @@ class particula:
 
     #falta agregar funciones para definir nuevas velocidades, posiciones y la condicion de al chocar cambia el angulo y velocidad al azar
 
+    def efecto_choque(self): # da nuevas velocidades
+        # w luego del rebote
+        new_w = -w
+        # u luego del rebote
+        e = random.uniform(0.0, radianes_de_10_grados) # Random float:  0.0 <= x <= 10.0
+        alpha = math.atan(new_w/self.urt)
+        while alpha >= radiandes_de_75_grados: # compara en radianes
+            e = random.uniform(0.0, 10.0)
+            alpha = math.atan(new_w / self.urt)
+        new_u = new_w/math.tan(alpha+e)
+        # v luego del rebote
+        angulo_para_Y = random.uniform(-radianes_de_10_grados, radianes_de_10_grados) # Random float:  -10.0 <= x <= 10.0
+        new_v = new_u * math.tan(angulo_para_Y)
+
+        # falta ver donde guardar las nuevas velocidades luego del rebote
+
 class parametros:
     def __init__(self, T = None, dt = None, theta = None, R = None, Taus = None, CL = None) -> None:
         self.T = T
@@ -122,5 +141,7 @@ if __name__ == "__main__":
         print(particulas[0].Fswz)
         print(particulas[0].Fvmx)
         print(particulas[0].Flfz)
+        print(radiandes_de_75_grados*180/math.pi)
+        print(math.atan(75))
     except Exception as e:
         print(f"{e}")
