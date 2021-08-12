@@ -10,6 +10,7 @@ CM = 0.5
 radiandes_de_75_grados = 5*math.pi/12
 radianes_de_10_grados = 0.174533
 COUNTER = 0
+OUT = ''
 
 '''
 Fdrx, Fdry, Fdrz    FUERZAS DE ARRASTRE
@@ -38,7 +39,7 @@ class particula:
         self.saltos = 0
         self.max_z = z
         self.promedio_alturas = None
-        self.z_por_salto = None
+        self.z_por_salto = []
 
     def calculate_ufz_urt_urm_cd_uftop_ufbot(self, Taus):
         #ufz
@@ -139,34 +140,30 @@ class parametros:
 if __name__ == "__main__":
     particulas = []
     prm = parametros()
-#////////////////INICIO Lectura de txt/////////////////////////    
+#////////////////INICIO Lectura de txt/////////////////////////
+#/////////////Debe recibir el txt como argumento en consola/////
     for i in range(len(sys.argv)):
         if i == 1:
-            with open(sys.argv[i]) as f:
-                prm.T, prm.dt = map(float, f.readline().split())
-                prm.theta, prm.R, prm.Taus, prm.CL = map(float, f.readline().split())
-                for line in f:
-                    x, y, z, u, v, w = map(float, line.split())
-                    ptc = particula(x, y, z, u, v, w)
-                    ptc.calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
-                    ptc.pesoSumergido(prm.theta, prm.Taus, prm.R)
-                    ptc.masaVirtual(prm.R)
-                    ptc.drag(prm.R)
-                    ptc.calculate_ur2t_ur2b()
-                    ptc.lift(prm.R, prm.CL)
-                    particulas.append(ptc)
+            try:
+                with open(sys.argv[i]) as f:
+                    OUT = sys.argv[i].strip('.txt')
+                    prm.T, prm.dt = map(float, f.readline().split())
+                    prm.theta, prm.R, prm.Taus, prm.CL = map(float, f.readline().split())
+                    for line in f:
+                        x, y, z, u, v, w = map(float, line.split())
+                        ptc = particula(x, y, z, u, v, w)
+                        ptc.calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
+                        ptc.pesoSumergido(prm.theta, prm.Taus, prm.R)
+                        ptc.masaVirtual(prm.R)
+                        ptc.drag(prm.R)
+                        ptc.calculate_ur2t_ur2b()
+                        ptc.lift(prm.R, prm.CL)
+                        particulas.append(ptc)
+            except Exception as e:
+                print('{e}')
 #////////////////FIN Lectura de txt/////////////////////////
-    print(particulas)
     #INICIO DE CALCULOS
     try:
-        #para simulacion probablemente crear todas las variables de forma temporal y acutalizar al final por particula
-        #aqui solo comprobando si se calculan las cosas, borrar para empezar simulacion XD
-        """ print(particulas[0].cd)
-        print(particulas[0].Fswz)
-        print(particulas[0].Fvmx)
-        print(particulas[0].Flfz)
-        print(radiandes_de_75_grados*180/math.pi)
-        print(math.atan(75)) """
         #SIMULACION
         while COUNTER < prm.T:
             COUNTER += prm.dt
@@ -176,6 +173,7 @@ if __name__ == "__main__":
                     particulas[i].efecto_choque()
                     particulas[i].saltos += 1
                     particulas[i].new_x_y_z(prm.dt)
+                    particulas[i].z_por_salto.append(particulas[i].max_z)
                 else:
                     #Nueva vel
                     particulas[i].new_u_v_w(prm.dt)
@@ -191,7 +189,9 @@ if __name__ == "__main__":
                 if particulas[i].z > particulas[i].max_z:
                     particulas[i].max_z = particulas[i].z
 
-        for i in range(len(particulas)):
-            print(particulas[i].saltos)
+        salida = OUT+".out"
+        with open(salida,'w') as f:
+            for line in particulas:
+                f.write(str(line.x)+' '+str(line.y)+' '+str(line.z)+' '+str(line.saltos)+' '+str(line.max_z)+' '+str(sum(line.z_por_salto)/len(line.z_por_salto))+'\n')
     except Exception as e:
         print(f"{e}")
