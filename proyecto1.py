@@ -171,11 +171,16 @@ if __name__ == "__main__":
         while COUNTER < prm.T:
             COUNTER += prm.dt
             for i in range(len(particulas)):
-                #Nueva vel
-                particulas[i].new_u_v_w(prm.dt)
-                #pos
-                particulas[i].new_x_y_z(prm.dt)
-                #print(particulas[i].z)
+                # ver rebote y asignar un +1 al salto si paso
+                if particulas[i].z < 0.501:
+                    particulas[i].efecto_choque()
+                    particulas[i].saltos += 1
+                    particulas[i].new_x_y_z(prm.dt)
+                else:
+                    #Nueva vel
+                    particulas[i].new_u_v_w(prm.dt)
+                    #pos
+                    particulas[i].new_x_y_z(prm.dt)
                 #fuerzas
                 particulas[i].calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
                 particulas[i].masaVirtual(prm.R)
@@ -185,11 +190,8 @@ if __name__ == "__main__":
                 #ver z max
                 if particulas[i].z > particulas[i].max_z:
                     particulas[i].max_z = particulas[i].z
-                #ver rebote y asignar un +1 al salto si paso
-                if particulas[i].z < 0.501:
-                    particulas[i].efecto_choque()
-                    particulas[i].saltos += 1
-                #asignar z por salto
-        print(particulas[1].saltos)
+
+        for i in range(len(particulas)):
+            print(particulas[i].saltos)
     except Exception as e:
         print(f"{e}")
