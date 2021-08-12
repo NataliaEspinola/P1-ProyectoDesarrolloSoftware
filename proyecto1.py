@@ -43,18 +43,21 @@ class particula:
     def calculate_ufz_urt_urm_cd_uftop_ufbot(self, Taus):
         #ufz
         condition = 73 * math.sqrt(Taus)
+        t = self.z - CM
+        if t <= 0:
+            t = 0.01
         if condition < 5:
             self.ufz = 2.5 * math.log(condition * self.z) + 5.5
-            self.uftop = 2.5 * math.log(condition * (self.z + CM)) + 5.5
-            self.ufbot = 2.5 * math.log(condition * (self.z - CM)) + 5.5
+            self.uftop = 2.5 * math.log(condition * (t)) + 5.5
+            self.ufbot = 2.5 * math.log(condition * t) + 5.5
         elif condition >= 5 and condition < 70:
             self.ufz = (2.5 * math.log(condition * self.z) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
             self.uftop = (2.5 * math.log(condition * (self.z + CM)) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
-            self.ufbot = (2.5 * math.log(condition * (self.z - CM)) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
+            self.ufbot = (2.5 * math.log(condition * t) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
         else:
             self.ufz = 2.5 * math.log(30 * self.z)
             self.uftop = 2.5 * math.log(30 * (self.z + CM))
-            self.ufbot = 2.5 * math.log(30 * (self.z - CM))
+            self.ufbot = 2.5 * math.log(30 * t)
         #urt
         self.urt = self.u - self.ufz
         #urm
@@ -75,7 +78,7 @@ class particula:
         #Fswx
         self.Fswx = math.sin(theta) * comun
         #Fswz
-        self.Fswz = math.cos(theta) * comun
+        self.Fswz = math.cos(theta) * -comun
 
     def masaVirtual(self, R):
         #Fvmx
@@ -97,7 +100,7 @@ class particula:
         self.w = new_w #revisar
         # u luego del rebote
         e = random.uniform(0.0, radianes_de_10_grados) # Random float:  0.0 <= x <= 10.0
-        alpha = math.atan(new_w/self.urt)
+        alpha = math.atan(new_w/self.u)
         while alpha >= radiandes_de_75_grados: # compara en radianes
             e = random.uniform(0.0, radianes_de_10_grados)
             alpha = math.atan(new_w / self.u)
@@ -172,6 +175,13 @@ if __name__ == "__main__":
                 particulas[i].new_u_v_w(prm.dt)
                 #pos
                 particulas[i].new_x_y_z(prm.dt)
+                #print(particulas[i].z)
+                #fuerzas
+                particulas[i].calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
+                particulas[i].masaVirtual(prm.R)
+                particulas[i].drag(prm.R)
+                particulas[i].calculate_ur2t_ur2b()
+                particulas[i].lift(prm.R, prm.CL)
                 #ver z max
                 if particulas[i].z > particulas[i].max_z:
                     particulas[i].max_z = particulas[i].z
@@ -180,13 +190,6 @@ if __name__ == "__main__":
                     particulas[i].efecto_choque()
                     particulas[i].saltos += 1
                 #asignar z por salto
-                #recalculo de fuerzas
-                particulas[i].calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
-                particulas[i].pesoSumergido(prm.theta, prm.Taus, prm.R)
-                particulas[i].masaVirtual(prm.R)
-                particulas[i].drag(prm.R)
-                particulas[i].calculate_ur2t_ur2b()
-                particulas[i].lift(prm.R, prm.CL)
         print(particulas[1].saltos)
     except Exception as e:
         print(f"{e}")
