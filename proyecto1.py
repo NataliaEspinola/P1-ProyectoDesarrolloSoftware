@@ -143,8 +143,8 @@ if __name__ == "__main__":
 #////////////////INICIO Lectura de txt/////////////////////////
 #/////////////Debe recibir el txt como argumento en consola/////
     for i in range(len(sys.argv)):
-        if i == 1:
-            try:
+        try:
+            if i == 1:
                 with open(sys.argv[i]) as f:
                     OUT = sys.argv[i].strip('.txt')
                     prm.T, prm.dt = map(float, f.readline().split())
@@ -159,8 +159,8 @@ if __name__ == "__main__":
                         ptc.calculate_ur2t_ur2b()
                         ptc.lift(prm.R, prm.CL)
                         particulas.append(ptc)
-            except Exception as e:
-                print(f"{e}")
+        except Exception as e:
+            print(f"{e}")
 #////////////////FIN Lectura de txt/////////////////////////
     #INICIO DE CALCULOS
     try:
