@@ -194,4 +194,4 @@ if __name__ == "__main__":
             for line in particulas:
                 f.write(str(line.x)+' '+str(line.y)+' '+str(line.z)+' '+str(line.saltos)+' '+str(line.max_z)+' '+str(sum(line.z_por_salto)/len(line.z_por_salto))+'\n')
     except Exception as e:
-        print(f"{e}")
+        print("No se logró leer el archivo")
