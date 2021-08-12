@@ -9,6 +9,7 @@ INICIO = 0
 CM = 0.5
 radiandes_de_75_grados = 5*math.pi/12
 radianes_de_10_grados = 0.174533
+COUNTER = 0
 
 '''
 Fdrx, Fdry, Fdrz    FUERZAS DE ARRASTRE
@@ -34,6 +35,10 @@ class particula:
         self.cd = None
         self.ur2t = None
         self.ur2b = None
+        self.saltos = 0
+        self.max_z = z
+        self.promedio_alturas = None
+        self.z_por_salto = None
 
     def calculate_ufz_urt_urm_cd_uftop_ufbot(self, Taus):
         #ufz
@@ -82,27 +87,42 @@ class particula:
 
     def calculate_ur2t_ur2b(self):
         #ur2t
-        self.ur2t = math.pow(self.urt - self.uftop, 2) + math.pow(v, 2) + math.pow(w, 2)
+        self.ur2t = math.pow(self.u - self.uftop, 2) + math.pow(self.v, 2) + math.pow(self.w, 2)
         #ur2b
-        self.ur2b = math.pow(self.urt - self.ufbot, 2) + math.pow(v, 2) + math.pow(w, 2)
-
-    #falta agregar funciones para definir nuevas velocidades, posiciones y la condicion de al chocar cambia el angulo y velocidad al azar
+        self.ur2b = math.pow(self.u - self.ufbot, 2) + math.pow(self.v, 2) + math.pow(self.w, 2)
 
     def efecto_choque(self): # da nuevas velocidades
         # w luego del rebote
-        new_w = -w
+        new_w = -self.w
+        self.w = new_w #revisar
         # u luego del rebote
         e = random.uniform(0.0, radianes_de_10_grados) # Random float:  0.0 <= x <= 10.0
         alpha = math.atan(new_w/self.urt)
         while alpha >= radiandes_de_75_grados: # compara en radianes
-            e = random.uniform(0.0, 10.0)
-            alpha = math.atan(new_w / self.urt)
+            e = random.uniform(0.0, radianes_de_10_grados)
+            alpha = math.atan(new_w / self.u)
         new_u = new_w/math.tan(alpha+e)
+        self.u = new_u #revisar
         # v luego del rebote
         angulo_para_Y = random.uniform(-radianes_de_10_grados, radianes_de_10_grados) # Random float:  -10.0 <= x <= 10.0
         new_v = new_u * math.tan(angulo_para_Y)
+        self.v = new_v #revisar
+    
+    def new_u_v_w(self,dt):
+        #u
+        self.u = self.u + ( dt * (self.Fdrx + self.Fswx + self.Fvmx))
+        #v
+        self.v = self.v + ( dt * (self.Fdry))
+        #w
+        self.w = self.w + ( dt * (self.Fdrz + self.Flfz + self.Fswz))
+    def new_x_y_z(self, dt):
+        #x
+        self.x = self.x + self.u * dt
+        #y
+        self.y = self.y + self.v * dt
+        #z
+        self.z = self.z + self.w * dt
 
-        # falta ver donde guardar las nuevas velocidades luego del rebote
 
 class parametros:
     def __init__(self, T = None, dt = None, theta = None, R = None, Taus = None, CL = None) -> None:
@@ -128,6 +148,7 @@ if __name__ == "__main__":
                     ptc.calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
                     ptc.pesoSumergido(prm.theta, prm.Taus, prm.R)
                     ptc.masaVirtual(prm.R)
+                    ptc.drag(prm.R)
                     ptc.calculate_ur2t_ur2b()
                     ptc.lift(prm.R, prm.CL)
                     particulas.append(ptc)
@@ -137,11 +158,35 @@ if __name__ == "__main__":
     try:
         #para simulacion probablemente crear todas las variables de forma temporal y acutalizar al final por particula
         #aqui solo comprobando si se calculan las cosas, borrar para empezar simulacion XD
-        print(particulas[0].cd)
+        """ print(particulas[0].cd)
         print(particulas[0].Fswz)
         print(particulas[0].Fvmx)
         print(particulas[0].Flfz)
         print(radiandes_de_75_grados*180/math.pi)
-        print(math.atan(75))
+        print(math.atan(75)) """
+        #SIMULACION
+        while COUNTER < prm.T:
+            COUNTER += prm.dt
+            for i in range(len(particulas)):
+                #Nueva vel
+                particulas[i].new_u_v_w(prm.dt)
+                #pos
+                particulas[i].new_x_y_z(prm.dt)
+                #ver z max
+                if particulas[i].z > particulas[i].max_z:
+                    particulas[i].max_z = particulas[i].z
+                #ver rebote y asignar un +1 al salto si paso
+                if particulas[i].z < 0.501:
+                    particulas[i].efecto_choque()
+                    particulas[i].saltos += 1
+                #asignar z por salto
+                #recalculo de fuerzas
+                particulas[i].calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
+                particulas[i].pesoSumergido(prm.theta, prm.Taus, prm.R)
+                particulas[i].masaVirtual(prm.R)
+                particulas[i].drag(prm.R)
+                particulas[i].calculate_ur2t_ur2b()
+                particulas[i].lift(prm.R, prm.CL)
+        print(particulas[1].saltos)
     except Exception as e:
         print(f"{e}")
