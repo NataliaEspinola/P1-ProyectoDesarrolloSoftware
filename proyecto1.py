@@ -160,7 +160,7 @@ if __name__ == "__main__":
                         ptc.lift(prm.R, prm.CL)
                         particulas.append(ptc)
             except Exception as e:
-                print('{e}')
+                print(f"{e}")
 #////////////////FIN Lectura de txt/////////////////////////
     #INICIO DE CALCULOS
     try:
