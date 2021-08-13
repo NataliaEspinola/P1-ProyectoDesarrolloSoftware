@@ -46,10 +46,10 @@ class particula:
         condition = 73 * math.sqrt(Taus)
         t = self.z - CM
         if t <= 0:
-            t = 0.01
+            t = 0.001
         if condition < 5:
             self.ufz = 2.5 * math.log(condition * self.z) + 5.5
-            self.uftop = 2.5 * math.log(condition * (t)) + 5.5
+            self.uftop = 2.5 * math.log(condition * (self.z + CM)) + 5.5
             self.ufbot = 2.5 * math.log(condition * t) + 5.5
         elif condition >= 5 and condition < 70:
             self.ufz = (2.5 * math.log(condition * self.z) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
@@ -68,14 +68,14 @@ class particula:
         self.cd = 24 / ( rep * (1 + 0.15 * math.sqrt(rep) + 0.017 * rep) - (0.208/(1 + math.pow(10,4) * math.pow(rep,-0.5))))
 
     def drag(self, R):
-        comun = -0.75 * (1 / 1+R+CM) * self.cd * self.urm
+        comun = -0.75 * (1 / (1+R+CM)) * self.cd * self.urm
         self.Fdrx = comun * self.urt
         self.Fdry = comun * self.v
         self.Fdrz = comun * self.w
 
     def pesoSumergido(self, theta, Taus, R):
         #Comun
-        comun = ( 1 / 1 + R + CM ) * ( 1 / Taus )
+        comun = ( 1 / (1 + R + CM) ) * ( 1 / Taus )
         #Fswx
         self.Fswx = math.sin(theta) * comun
         #Fswz
@@ -83,11 +83,11 @@ class particula:
 
     def masaVirtual(self, R):
         #Fvmx
-        self.Fvmx = ( CM / 1 + R + CM ) * self.w * ( 2.5 / self.z)
+        self.Fvmx = ( CM / (1 + R + CM) ) * self.w * ( 2.5 / self.z)
 
     def lift(self, R, CL):
         #Flfz
-        self.Flfz = 0.75 * (1 / 1 + R + CM) * CL * (self.ur2t + self.ur2b)
+        self.Flfz = 0.75 * (1 / (1 + R + CM)) * CL * (self.ur2t + self.ur2b)
 
     def calculate_ur2t_ur2b(self):
         #ur2t
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         try:
             if i == 1:
                 with open(sys.argv[i]) as f:
-                    OUT = sys.argv[i].strip('.txt')
+                    OUT = sys.argv[i].split('.',1)[0]
                     prm.T, prm.dt = map(float, f.readline().split())
                     prm.theta, prm.R, prm.Taus, prm.CL = map(float, f.readline().split())
                     for line in f:
@@ -163,35 +163,39 @@ if __name__ == "__main__":
             print(f"{e}")
 #////////////////FIN Lectura de txt/////////////////////////
     #INICIO DE CALCULOS
-    try:
-        #SIMULACION
-        while COUNTER < prm.T:
-            COUNTER += prm.dt
-            for i in range(len(particulas)):
-                # ver rebote y asignar un +1 al salto si paso
-                if particulas[i].z < 0.501:
-                    particulas[i].efecto_choque()
-                    particulas[i].saltos += 1
-                    particulas[i].new_x_y_z(prm.dt)
-                    particulas[i].z_por_salto.append(particulas[i].max_z)
-                else:
-                    #Nueva vel
-                    particulas[i].new_u_v_w(prm.dt)
-                    #pos
-                    particulas[i].new_x_y_z(prm.dt)
-                #fuerzas
-                particulas[i].calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
-                particulas[i].masaVirtual(prm.R)
-                particulas[i].drag(prm.R)
-                particulas[i].calculate_ur2t_ur2b()
-                particulas[i].lift(prm.R, prm.CL)
-                #ver z max
-                if particulas[i].z > particulas[i].max_z:
-                    particulas[i].max_z = particulas[i].z
 
-        salida = OUT+".out"
-        with open(salida,'w') as f:
-            for line in particulas:
-                f.write(str(line.x)+' '+str(line.y)+' '+str(line.z)+' '+str(line.saltos)+' '+str(line.max_z)+' '+str(sum(line.z_por_salto)/len(line.z_por_salto))+'\n')
-    except Exception as e:
-        print("No se logró leer el archivo")
+        #SIMULACION
+    while COUNTER < 0.01:
+        COUNTER += prm.dt
+        for i in range(len(particulas)):
+            # ver rebote y asignar un +1 al salto si paso
+            if particulas[i].z < 0.501:
+                particulas[i].efecto_choque()
+                particulas[i].saltos += 1
+                particulas[i].new_x_y_z(prm.dt)
+                particulas[i].z_por_salto.append(particulas[i].max_z)
+            else:
+                #Nueva vel
+                particulas[i].new_u_v_w(prm.dt)
+                #pos
+                particulas[i].new_x_y_z(prm.dt)
+            #fuerzas
+            particulas[i].calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
+            particulas[i].masaVirtual(prm.R)
+            particulas[i].drag(prm.R)
+            particulas[i].calculate_ur2t_ur2b()
+            particulas[i].lift(prm.R, prm.CL)
+            #ver z max
+            if particulas[i].z > particulas[i].max_z:
+                particulas[i].max_z = particulas[i].z
+
+    salida = OUT+".out"
+    with open(salida,'w') as f:
+        a = 0
+        for line in particulas:
+            """ if min(line.z_por_salto) > 0:
+                f.write(str(line.x)+' '+str(line.y)+' '+str(line.z)+' '+str(line.saltos)+' '+str(line.max_z)+' '+str(sum(line.z_por_salto)/len(line.z_por_salto))+'\n') """
+            #ver fuerzas
+            print(f"Particula {a}\n        x: {line.x}, y: {line.y}, z: {line.z}\n     Fdrx: {line.Fdrx}, Fswx: {line.Fswx}, Fvmx: {line.Fvmx}\n     Fdry: {line.Fdry}\n     Fdrz: {line.Fdrz}, Fwsz: {line.Fswz}, Flfz: {line.Flfz}")
+            a += 1
+
