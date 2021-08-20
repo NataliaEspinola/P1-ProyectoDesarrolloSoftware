@@ -2,6 +2,7 @@ import sys
 import io
 import math
 import random
+import time
 
 DIAMETRO = 1
 RADIO = DIAMETRO / 2
@@ -40,7 +41,6 @@ class particula:
         self.ur2b = None
         self.saltos = 0
         self.max_z = z
-        self.promedio_alturas = None
         self.z_por_salto = []
 
     def calculate_ufz_urt_urm_cd_uftop_ufbot(self, Taus):
@@ -144,6 +144,7 @@ class parametros:
 
 
 if __name__ == "__main__":
+    inicio = time.time()
     particulas = []
     prm = parametros()
     # ////////////////INICIO Lectura de txt/////////////////////////
@@ -174,25 +175,28 @@ if __name__ == "__main__":
     while COUNTER < prm.T:
         COUNTER += prm.dt
         for i in range(len(particulas)):
+            # se guarda la altura anterior
+            last_z = particulas[i].z
             # ver rebote y asignar un +1 al salto si paso
             if particulas[i].z < 0.501:
                 particulas[i].efecto_choque()
                 particulas[i].saltos += 1
                 particulas[i].new_x_y_z(prm.dt)
-                particulas[i].z_por_salto.append(particulas[i].max_z)
             else:
                 # Nueva vel
                 particulas[i].new_u_v_w(prm.dt)
                 # pos
                 particulas[i].new_x_y_z(prm.dt)
+                # comparar altura anterior con actual para guardar altura por salto
+                if particulas[i].saltos > 0:
+                    if last_z > particulas[i].z:
+                        particulas[i].z_por_salto.append(last_z)
             # fuerzas
             particulas[i].calculate_ufz_urt_urm_cd_uftop_ufbot(prm.Taus)
             particulas[i].masaVirtual(prm.R)
             particulas[i].drag(prm.R)
             particulas[i].calculate_ur2t_ur2b()
             particulas[i].lift(prm.R, prm.CL)
-            # print(
-            #     f"\n        x: {particulas[i].x}, y: {particulas[i].y}, z: {particulas[i].z}\n     Fdrx: {particulas[i].Fdrx}, Fswx: {particulas[i].Fswx}, Fvmx: {particulas[i].Fvmx}\n     Fdry: {particulas[i].Fdry}\n     Fdrz: {particulas[i].Fdrz}, Fwsz: {particulas[i].Fswz}, Flfz: {particulas[i].Flfz}")
             # ver z max
             if particulas[i].z > particulas[i].max_z:
                 particulas[i].max_z = particulas[i].z
@@ -201,7 +205,6 @@ if __name__ == "__main__":
     with open(salida, 'w') as f:
         a = 0
         for p in particulas:
-            print(p.z_por_salto)
             if len(p.z_por_salto) > 0:
                 f.write(
                     str(p.x) + ' ' + str(p.y) + ' ' + str(p.z) + ' ' + str(p.saltos) + ' ' + str(p.max_z) + ' ' + str(
@@ -209,6 +212,9 @@ if __name__ == "__main__":
             else:
                 f.write(
                     str(p.x) + ' ' + str(p.y) + ' ' + str(p.z) + ' ' + str(p.saltos) + ' ' + str(p.max_z) + ' 0' + '\n')
-            print(
-                f"Particula {a}\n        x: {p.x}, y: {p.y}, z: {p.z}\n     Fdrx: {p.Fdrx}, Fswx: {p.Fswx}, Fvmx: {p.Fvmx}\n     Fdry: {p.Fdry}\n     Fdrz: {p.Fdrz}, Fwsz: {p.Fswz}, Flfz: {p.Flfz}")
-            a += 1
+            # print(
+            #     f"Particula {a}\n        x: {p.x}, y: {p.y}, z: {p.z}\n     Fdrx: {p.Fdrx}, Fswx: {p.Fswx}, Fvmx: {p.Fvmx}\n     Fdry: {p.Fdry}\n     Fdrz: {p.Fdrz}, Fwsz: {p.Fswz}, Flfz: {p.Flfz}")
+            # print("ut: ", p.u, ", vt: ", p.v, ",wt: ", p.w)
+            # a += 1
+    fin = time.time()
+    print("Tiempo: ", fin - inicio)
