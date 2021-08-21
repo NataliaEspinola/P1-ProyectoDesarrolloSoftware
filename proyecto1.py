@@ -206,12 +206,11 @@ if __name__ == "__main__":
         a = 0
         for p in particulas:
             if len(p.z_por_salto) > 0:
-                f.write(
-                    str(p.x) + ' ' + str(p.y) + ' ' + str(p.z) + ' ' + str(p.saltos) + ' ' + str(p.max_z) + ' ' + str(
-                        sum(p.z_por_salto) / len(p.z_por_salto)) + '\n')
+                f.write("".join([str(p.x), " ", str(p.y), " ", str(p.z), " ", str(p.saltos), " ", str(p.max_z), " ",
+                                 str(sum(p.z_por_salto) / len(p.z_por_salto)), "\n"]))
             else:
-                f.write(
-                    str(p.x) + ' ' + str(p.y) + ' ' + str(p.z) + ' ' + str(p.saltos) + ' ' + str(p.max_z) + ' 0' + '\n')
+                f.write("".join([str(p.x), " ", str(p.y), " ", str(p.z), " ", str(p.saltos), " ", str(p.max_z), " 0",
+                                 "\n"]))
             # print(
             #     f"Particula {a}\n        x: {p.x}, y: {p.y}, z: {p.z}\n     Fdrx: {p.Fdrx}, Fswx: {p.Fswx}, Fvmx: {p.Fvmx}\n     Fdry: {p.Fdry}\n     Fdrz: {p.Fdrz}, Fwsz: {p.Fswz}, Flfz: {p.Flfz}")
             # print("ut: ", p.u, ", vt: ", p.v, ",wt: ", p.w)
