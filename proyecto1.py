@@ -1,6 +1,6 @@
 import sys
 import io
-import math
+from math import sqrt, pow, pi, log, pow, atan, tan, cos, sin
 import random
 import time
 
@@ -8,7 +8,7 @@ DIAMETRO = 1
 RADIO = DIAMETRO / 2
 INICIO = 0
 CM = 0.5
-radiandes_de_75_grados = 5 * math.pi / 12
+radiandes_de_75_grados = 5 * pi / 12
 radianes_de_10_grados = 0.174533
 COUNTER = 0
 OUT = ''
@@ -45,30 +45,30 @@ class particula:
 
     def calculate_ufz_urt_urm_cd_uftop_ufbot(self, Taus):
         # ufz
-        condition = 73 * math.sqrt(Taus)
+        condition = 73 * sqrt(Taus)
         t = self.z - CM
         if t <= 0:
             t = 0.001
         if condition < 5:
-            self.ufz = 2.5 * math.log(condition * self.z) + 5.5
-            self.uftop = 2.5 * math.log(condition * (self.z + CM)) + 5.5
-            self.ufbot = 2.5 * math.log(condition * t) + 5.5
+            self.ufz = 2.5 * log(condition * self.z) + 5.5
+            self.uftop = 2.5 * log(condition * (self.z + CM)) + 5.5
+            self.ufbot = 2.5 * log(condition * t) + 5.5
         elif condition >= 5 and condition < 70:
-            self.ufz = (2.5 * math.log(condition * self.z) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
-            self.uftop = (2.5 * math.log(condition * (self.z + CM)) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
-            self.ufbot = (2.5 * math.log(condition * t) + 5.5) - (2.5 * math.log(1 + 0.3 * condition))
+            self.ufz = (2.5 * log(condition * self.z) + 5.5) - (2.5 * log(1 + 0.3 * condition))
+            self.uftop = (2.5 * log(condition * (self.z + CM)) + 5.5) - (2.5 * log(1 + 0.3 * condition))
+            self.ufbot = (2.5 * log(condition * t) + 5.5) - (2.5 * log(1 + 0.3 * condition))
         else:
-            self.ufz = 2.5 * math.log(30 * self.z)
-            self.uftop = 2.5 * math.log(30 * (self.z + CM))
-            self.ufbot = 2.5 * math.log(30 * t)
+            self.ufz = 2.5 * log(30 * self.z)
+            self.uftop = 2.5 * log(30 * (self.z + CM))
+            self.ufbot = 2.5 * log(30 * t)
         # urt
         self.urt = self.u - self.ufz
         # urm
-        self.urm = math.sqrt(math.pow(self.urt, 2) + math.pow(self.v, 2) + math.pow(self.w, 2))
+        self.urm = sqrt(pow(self.urt, 2) + pow(self.v, 2) + pow(self.w, 2))
         # cd
         rep = self.urm * condition
-        self.cd = 24 / (rep * (1 + 0.15 * math.sqrt(rep) + 0.017 * rep) - (
-                    0.208 / (1 + math.pow(10, 4) * math.pow(rep, -0.5))))
+        self.cd = 24 / (rep * (1 + 0.15 * sqrt(rep) + 0.017 * rep) - (
+                    0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
 
     def drag(self, R):
         comun = -0.75 * (1 / (1 + R + CM)) * self.cd * self.urm
@@ -80,9 +80,9 @@ class particula:
         # Comun
         comun = (1 / (1 + R + CM)) * (1 / Taus)
         # Fswx
-        self.Fswx = math.sin(theta) * comun
+        self.Fswx = sin(theta) * comun
         # Fswz
-        self.Fswz = math.cos(theta) * -comun
+        self.Fswz = cos(theta) * -comun
 
     def masaVirtual(self, R):
         # Fvmx
@@ -94,9 +94,9 @@ class particula:
 
     def calculate_ur2t_ur2b(self):
         # ur2t
-        self.ur2t = math.pow((self.u - self.uftop), 2) + math.pow(self.v, 2) + math.pow(self.w, 2)
+        self.ur2t = pow((self.u - self.uftop), 2) + pow(self.v, 2) + pow(self.w, 2)
         # ur2b
-        self.ur2b = math.pow((self.u - self.ufbot), 2) + math.pow(self.v, 2) + math.pow(self.w, 2)
+        self.ur2b = pow((self.u - self.ufbot), 2) + pow(self.v, 2) + pow(self.w, 2)
 
     def efecto_choque(self):  # da nuevas velocidades
         # w luego del rebote
@@ -104,16 +104,16 @@ class particula:
         self.w = new_w
         # u luego del rebote
         e = random.uniform(0.0, radianes_de_10_grados)  # Random float:  0.0 <= x <= 10.0
-        alpha = math.atan(new_w / self.u)
+        alpha = atan(new_w / self.u)
         while alpha >= radiandes_de_75_grados:  # compara en radianes
             e = random.uniform(0.0, radianes_de_10_grados)
-            alpha = math.atan(new_w / self.u)
-        new_u = new_w / math.tan(alpha + e)
+            alpha = atan(new_w / self.u)
+        new_u = new_w / tan(alpha + e)
         self.u = new_u
         # v luego del rebote
         angulo_para_Y = random.uniform(-radianes_de_10_grados,
                                        radianes_de_10_grados)  # Random float:  -10.0 <= x <= 10.0
-        new_v = new_u * math.tan(angulo_para_Y)
+        new_v = new_u * tan(angulo_para_Y)
         self.v = new_v
 
     def new_u_v_w(self, dt):
