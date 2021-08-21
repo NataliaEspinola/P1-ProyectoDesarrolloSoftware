@@ -131,6 +131,13 @@ class particula:
         self.y = self.y + self.v * dt
         # z
         self.z = self.z + self.w * dt
+    def new_pos_choque(self, dt):
+        # x
+        self.x = self.x + self.u * dt
+        # y
+        self.y = self.y + self.v * dt
+        # z
+        self.z = 0.501
 
 
 class parametros:
@@ -181,7 +188,7 @@ if __name__ == "__main__":
             if particulas[i].z < 0.501:
                 particulas[i].efecto_choque()
                 particulas[i].saltos += 1
-                particulas[i].new_x_y_z(prm.dt)
+                particulas[i].new_pos_choque(prm.dt)
             else:
                 # Nueva vel
                 particulas[i].new_u_v_w(prm.dt)
