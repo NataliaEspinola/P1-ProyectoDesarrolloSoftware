@@ -3,6 +3,8 @@ import io
 from math import sqrt, pow, pi, log, pow, atan, tan, cos, sin
 import random
 import time
+import multiprocessing as mp
+from multiprocessing.pool import Pool
 
 DIAMETRO = 1
 RADIO = DIAMETRO / 2
@@ -28,10 +30,8 @@ Flfz                FUERZA DE ELEVACION
 
 '''
 
-
 class particula:
-    def __init__(self, x, y, z, u, v, w, Fdrx=None, Fdry=None, Fdrz=None, Fswx=None, Fswz=None, Fvmx=None,
-                 Flfz=None) -> None:
+    def __init__(self, x, y, z, u, v, w, Fdrx = None, Fdry = None, Fdrz = None, Fswx = None, Fswz = None, Fvmx = None, Flfz = None) -> None:
         self.x = x
         self.y = y
         self.z = z
@@ -50,160 +50,164 @@ class particula:
         self.max_z = z
         self.z_por_salto = []
 
-    def calculate_ufz_urt_urm_cd_uftop_ufbot(self, Taus):
-        # ufz
-        condition = 73 * sqrt(Taus)
-        t = self.z - CM
-        if t <= 0:
-            t = 0.001
-        if condition < 5:
-            self.ufz = 2.5 * log(condition * self.z) + 5.5
-            self.uftop = 2.5 * log(condition * (self.z + CM)) + 5.5
-            self.ufbot = 2.5 * log(condition * t) + 5.5
-        elif condition >= 5 and condition < 70:
-            self.ufz = (2.5 * log(condition * self.z) + 5.5) - (2.5 * log(1 + 0.3 * condition))
-            self.uftop = (2.5 * log(condition * (self.z + CM)) + 5.5) - (2.5 * log(1 + 0.3 * condition))
-            self.ufbot = (2.5 * log(condition * t) + 5.5) - (2.5 * log(1 + 0.3 * condition))
-        else:
-            self.ufz = 2.5 * log(30 * self.z)
-            self.uftop = 2.5 * log(30 * (self.z + CM))
-            self.ufbot = 2.5 * log(30 * t)
-        # urt
-        self.urt = self.u - self.ufz
-        # urm
-        self.urm = sqrt(pow(self.urt, 2) + pow(self.v, 2) + pow(self.w, 2))
-        # cd
-        rep = self.urm * condition
-        self.cd = 24 / (rep * (1 + 0.15 * sqrt(rep) + 0.017 * rep) - (
-                    0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
+def calculate_ufz_urt_urm_cd_uftop_ufbot_ur2t_ur2b(p, Taus):
+    # ufz
+    condition = 73 * sqrt(Taus)
+    t = p.z - CM
+    if t <= 0:
+        t = 0.001
+    if condition < 5:
+        p.ufz = 2.5 * log(condition * p.z) + 5.5
+        p.uftop = 2.5 * log(condition * (p.z + CM)) + 5.5
+        p.ufbot = 2.5 * log(condition * t) + 5.5
+    elif condition >= 5 and condition < 70:
+        p.ufz = (2.5 * log(condition * p.z) + 5.5) - (2.5 * log(1 + 0.3 * condition))
+        p.uftop = (2.5 * log(condition * (p.z + CM)) + 5.5) - (2.5 * log(1 + 0.3 * condition))
+        p.ufbot = (2.5 * log(condition * t) + 5.5) - (2.5 * log(1 + 0.3 * condition))
+    else:
+        p.ufz = 2.5 * log(30 * p.z)
+        p.uftop = 2.5 * log(30 * (p.z + CM))
+        p.ufbot = 2.5 * log(30 * t)
+    # urt
+    p.urt = p.u - p.ufz
+    # urm
+    p.urm = sqrt(pow(p.urt, 2) + pow(p.v, 2) + pow(p.w, 2))
+    # cd
+    rep = p.urm * condition
+    p.cd = 24 / (rep * (1 + 0.15 * sqrt(rep) + 0.017 * rep) - (
+                0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
+    # ur2t
+    p.ur2t = pow((p.u - p.uftop), 2) + pow(p.v, 2) + pow(p.w, 2)
+    # ur2b
+    p.ur2b = pow((p.u - p.ufbot), 2) + pow(p.v, 2) + pow(p.w, 2)
+    return p
 
-    def drag(self, R):
-        comun = -0.75 * (1 / (1 + R + CM)) * self.cd * self.urm
-        self.Fdrx = comun * self.urt
-        self.Fdry = comun * self.v
-        self.Fdrz = comun * self.w
+def drag(p, R):
+    comun = -0.75 * (1 / (1 + R + CM)) * p.cd * p.urm
+    p.Fdrx = comun * p.urt
+    p.Fdry = comun * p.v
+    p.Fdrz = comun * p.w
+    return p
 
-    def pesoSumergido(self, theta, Taus, R):
-        # Comun
-        comun = (1 / (1 + R + CM)) * (1 / Taus)
-        # Fswx
-        self.Fswx = sin(theta) * comun
-        # Fswz
-        self.Fswz = cos(theta) * -comun
+def pesoSumergido(p, theta, Taus, R):
+    # Comun
+    comun = (1 / (1 + R + CM)) * (1 / Taus)
+    # Fswx
+    p.Fswx = sin(theta) * comun
+    # Fswz
+    p.Fswz = cos(theta) * -comun
+    return p
 
-    def masaVirtual(self, R):
-        # Fvmx
-        self.Fvmx = (CM / (1 + R + CM)) * self.w * (2.5 / self.z)
+def masaVirtual(p, R):
+    # Fvmx
+    p.Fvmx = (CM / (1 + R + CM)) * p.w * (2.5 / p.z)
+    return p
 
-    def lift(self, R, CL):
-        # Flfz
-        self.Flfz = 0.75 * (1 / (1 + R + CM)) * CL * (self.ur2t - self.ur2b)
+def lift(p, R, CL):
+    # Flfz
+    p.Flfz = 0.75 * (1 / (1 + R + CM)) * CL * (p.ur2t - p.ur2b)
+    return p
 
-    def calculate_ur2t_ur2b(self):
-        # ur2t
-        self.ur2t = pow((self.u - self.uftop), 2) + pow(self.v, 2) + pow(self.w, 2)
-        # ur2b
-        self.ur2b = pow((self.u - self.ufbot), 2) + pow(self.v, 2) + pow(self.w, 2)
+def efecto_choque(p):  # da nuevas velocidades
+    # w luego del rebote
+    new_w = -p.w
+    p.w = new_w
+    # u luego del rebote
+    e = random.uniform(0.0, radianes_de_10_grados)  # Random float:  0.0 <= x <= 10.0
+    alpha = atan(new_w / p.u)
+    while alpha >= radiandes_de_75_grados:  # compara en radianes
+        e = random.uniform(0.0, radianes_de_10_grados)
+        alpha = atan(new_w / p.u)
+    new_u = new_w / tan(alpha + e)
+    p.u = new_u
+    # v luego del rebote
+    angulo_para_Y = random.uniform(-radianes_de_10_grados,
+                                    radianes_de_10_grados)  # Random float:  -10.0 <= x <= 10.0
+    new_v = new_u * tan(angulo_para_Y)
+    p.v = new_v
+    return p
 
-    def efecto_choque(self):  # da nuevas velocidades
-        # w luego del rebote
-        new_w = -self.w
-        self.w = new_w
-        # u luego del rebote
-        e = random.uniform(0.0, radianes_de_10_grados)  # Random float:  0.0 <= x <= 10.0
-        alpha = atan(new_w / self.u)
-        while alpha >= radiandes_de_75_grados:  # compara en radianes
-            e = random.uniform(0.0, radianes_de_10_grados)
-            alpha = atan(new_w / self.u)
-        new_u = new_w / tan(alpha + e)
-        self.u = new_u
-        # v luego del rebote
-        angulo_para_Y = random.uniform(-radianes_de_10_grados,
-                                       radianes_de_10_grados)  # Random float:  -10.0 <= x <= 10.0
-        new_v = new_u * tan(angulo_para_Y)
-        self.v = new_v
+def new_u_v_w(p, dt):
+    # u
+    p.u = p.u + (dt * (p.Fdrx + p.Fswx + p.Fvmx))
+    # v
+    p.v = p.v + (dt * (p.Fdry))
+    # w
+    p.w = p.w + (dt * (p.Fdrz + p.Flfz + p.Fswz))
+    return p
 
-    def new_u_v_w(self, dt):
-        # u
-        self.u = self.u + (dt * (self.Fdrx + self.Fswx + self.Fvmx))
-        # v
-        self.v = self.v + (dt * (self.Fdry))
-        # w
-        self.w = self.w + (dt * (self.Fdrz + self.Flfz + self.Fswz))
-
-    def new_x_y_z(self, dt):
-        # x
-        self.x = self.x + self.u * dt
-        # y
-        self.y = self.y + self.v * dt
-        # z
-        self.z = self.z + self.w * dt
-    def new_pos_choque(self, dt):
-        # x
-        self.x = self.x + self.u * dt
-        # y
-        self.y = self.y + self.v * dt
-        # z
-        self.z = 0.501
-
+def new_x_y_z(p, dt):
+    # x
+    p.x = p.x + p.u * dt
+    # y
+    p.y = p.y + p.v * dt
+    # z
+    p.z = p.z + p.w * dt
+    return p
+def new_pos_choque(p, dt):
+    # x
+    p.x = p.x + p.u * dt
+    # y
+    p.y = p.y + p.v * dt
+    # z
+    p.z = 0.501
+    return p
 
 
 if __name__ == "__main__":
     inicio = time.time()
     particulas = []
-    # ////////////////INICIO Lectura de txt/////////////////////////
-    # /////////////Debe recibir el txt como argumento en consola/////
+    largo = 0
+#////////////////INICIO Lectura de txt/////////////////////////    
     for i in range(len(sys.argv)):
-        try:
-            if i == 1:
-                with open(sys.argv[i]) as f:
-                    OUT = sys.argv[i].split('.', 1)[0]
-                    T, dt = map(float, f.readline().split())
-                    theta, R, Taus, CL = map(float, f.readline().split())
-                    for p in f:
-                        x, y, z, u, v, w = map(float, p.split())
-                        ptc = particula(x, y, z, u, v, w)
-                        ptc.calculate_ufz_urt_urm_cd_uftop_ufbot(Taus)
-                        ptc.pesoSumergido(theta, Taus, R)
-                        ptc.masaVirtual(R)
-                        ptc.drag(R)
-                        ptc.calculate_ur2t_ur2b()
-                        ptc.lift(R, CL)
-                        particulas.append(ptc)
-        except Exception as e:
-            print(f"{e}")
-    # ////////////////FIN Lectura de txt/////////////////////////
-    # INICIO DE CALCULOS
-
-    # SIMULACION
+        if i == 1:
+            with open(sys.argv[i]) as f:
+                OUT = sys.argv[i].split('.', 1)[0]
+                T, dt = map(float, f.readline().split())
+                theta, R, Taus, CL = map(float, f.readline().split())
+                for p in f:
+                    x, y, z, u, v, w = map(float, p.split())
+                    ptc = particula(x, y, z, u, v, w)
+                    ptc = calculate_ufz_urt_urm_cd_uftop_ufbot_ur2t_ur2b(ptc,Taus)
+                    ptc = pesoSumergido(ptc,theta, Taus, R)
+                    ptc = masaVirtual(ptc,R)
+                    ptc = drag(ptc,R)
+                    ptc = lift(ptc,R, CL)
+                    largo += 1
+                    particulas.append(ptc)
+#////////////////FIN Lectura de txt/////////////////////////
+    #INICIO DE CALCULOS
     while COUNTER < T:
         COUNTER += dt
+        with mp.Pool(processes=4) as pool:                                          
+            for t in range(largo):                                                   
+                particulas = pool.starmap(calculate_ufz_urt_urm_cd_uftop_ufbot_ur2t_ur2b, particulas)
         for i in range(len(particulas)):
             # se guarda la altura anterior
             last_z = particulas[i].z
             # ver rebote y asignar un +1 al salto si paso
             if particulas[i].z < 0.501:
-                particulas[i].efecto_choque()
+                particulas[i] = efecto_choque(particulas[i])
                 particulas[i].saltos += 1
-                particulas[i].new_pos_choque(dt)
+                particulas[i] = new_pos_choque(particulas[i],dt)
             else:
                 # Nueva vel
-                particulas[i].new_u_v_w(dt)
+                particulas[i] = new_u_v_w(particulas[i],dt)
                 # pos
-                particulas[i].new_x_y_z(dt)
+                particulas[i] = new_x_y_z(particulas[i],dt)
                 # comparar altura anterior con actual para guardar altura por salto
                 if particulas[i].saltos > 0:
                     if last_z > particulas[i].z:
                         particulas[i].z_por_salto.append(last_z)
             # fuerzas
-            particulas[i].calculate_ufz_urt_urm_cd_uftop_ufbot(Taus)
-            particulas[i].masaVirtual(R)
-            particulas[i].drag(R)
-            particulas[i].calculate_ur2t_ur2b()
-            particulas[i].lift(R, CL)
+            particulas[i] = calculate_ufz_urt_urm_cd_uftop_ufbot_ur2t_ur2b(particulas[i],Taus)
+            particulas[i] = masaVirtual(particulas[i],R)
+            particulas[i] = drag(particulas[i],R)
+            particulas[i] = lift(particulas[i],R, CL)
             # ver z max
             if particulas[i].z > particulas[i].max_z:
                 particulas[i].max_z = particulas[i].z
+
 
     salida = OUT + ".out"
     with open(salida, 'w') as f:
